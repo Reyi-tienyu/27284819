@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>現場支援排班平台 — 營運指導課</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4F7;
+  --surface:#FFFFFF;
+  --surface2:#F8F9FB;
+  --border:#E4E7EC;
+  --border2:#D0D5DD;
+  --text:#101828;
+  --text2:#475467;
+  --text3:#98A2B3;
+  --accent:#1D4ED8;
+  --accent-light:#EFF4FF;
+  --accent-border:#B2CCFF;
+  --green:#027A48;
+  --green-bg:#ECFDF3;
+  --red:#B42318;
+  --red-bg:#FEF3F2;
+  --amber:#B54708;
+  --amber-bg:#FFFAEB;
+  --purple:#5925DC;
+  --purple-bg:#F4F3FF;
+  --radius:10px;
+  --radius-sm:7px;
+  --shadow:0 1px 3px rgba(16,24,40,0.1),0 1px 2px rgba(16,24,40,0.06);
+  --shadow-md:0 4px 8px rgba(16,24,40,0.08),0 2px 4px rgba(16,24,40,0.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Microsoft JhengHei','微軟正黑體',system-ui,sans-serif;background:#F5F3F0;color:#3A3632;min-height:100vh}
+.topbar{background:#3D6070;color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.topbar-title{font-size:14px;font-weight:500;letter-spacing:0.04em}
+.topbar-save{font-size:12px;color:#B5C8D4}
+.container{max-width:780px;margin:0 auto;padding:1.5rem 1rem}
+.tabs{display:flex;gap:4px;border-bottom:2px solid #B5C8D4;margin-bottom:1.5rem;flex-wrap:wrap;background:#FFFFFF;border-radius:8px 8px 0 0;padding:8px 8px 0}
+.tab{padding:8px 14px;font-size:13px;cursor:pointer;border:none;background:none;color:#ABA49C;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:4px 4px 0 0;transition:color 0.15s}
+.tab:hover{color:#3A3632}
+.tab.active{color:#3D6070;border-bottom-color:#7A9BAD;font-weight:500}
+.sec{display:none}.sec.active{display:block}
+.card{background:#FFFFFF;border:1px solid #E2DDD8;border-radius:10px;padding:1rem 1.25rem;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.lbl{font-size:13px;color:#7A746C;min-width:52px}
+input[type=text],input[type=date],select{border:1px solid #E2DDD8;border-radius:7px;padding:6px 10px;font-size:13px;background:#FFFFFF;color:#3A3632;outline:none;transition:border-color 0.15s}
+input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#7A9BAD}
+.btn{padding:6px 14px;border-radius:7px;font-size:13px;cursor:pointer;border:1px solid #B5C8D4;background:transparent;color:#3D6070;transition:background 0.15s}
+.btn:hover{background:#E8EFF4}
+.btn-p{background:#7A9BAD;color:#fff;border-color:#7A9BAD}.btn-p:hover{background:#3D6070}
+.btn-d{color:#6B4848;border-color:transparent}.btn-d:hover{background:#F2EBEB}
+.prow{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #EDE9E4;flex-wrap:wrap}
+.prow:last-child{border-bottom:none}
+.ava{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;background:#E8EFF4;color:#3D6070}
+.ava.mgr{background:#F2EBEB;color:#6B4848}
+.ava.nonshift{background:#EBF2EE;color:#4A6B5C}
+.empty{color:#ABA49C;font-size:14px;text-align:center;padding:2rem 0}
+.rec-card{border:1px solid #EDE9E4;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;background:#FFFFFF}
+.rec-card.confirmed{border-color:#B8D0C7;background:#EBF2EE}
+.rec-card.mgr-fill{border-color:#D4B8B8;background:#F2EBEB}
+.score-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.copybox{background:#F5F3F0;border-radius:8px;padding:14px;font-size:13px;line-height:1.9;white-space:pre-wrap;color:#3A3632;margin-top:8px;border:1px solid #B5C8D4;font-family:inherit}
+.upload-zone{border:2px dashed #E2DDD8;border-radius:10px;padding:1.5rem;text-align:center;cursor:pointer;transition:background 0.15s,border-color 0.15s}
+.upload-zone:hover{background:#E8EFF4;border-color:#B5C8D4}
+.upload-zone input{display:none}
+.hint{background:#E8EFF4;border-radius:8px;padding:10px 14px;font-size:12px;color:#3D6070;margin-bottom:10px;line-height:1.8;border:1px solid #B5C8D4}
+.hint-warn{background:#F0EBE3;border-radius:8px;padding:10px 14px;font-size:12px;color:#6B5A40;margin-bottom:10px;line-height:1.8;border:1px solid #D0C0A8}
+.hours-chip{font-size:11px;padding:2px 8px;border-radius:99px;background:#EBF2EE;color:#4A6B5C}
+.mgr-chip{font-size:11px;padding:2px 8px;border-radius:99px;background:#F2EBEB;color:#6B4848}
+.shift-chip{font-size:11px;padding:2px 8px;border-radius:99px;background:#EDEAF5;color:#5C4F8A}
+.nonshift-chip{font-size:11px;padding:2px 8px;border-radius:99px;background:#EBF2EE;color:#4A6B5C}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1rem}
+.stat-card{background:#E8EFF4;border-radius:10px;padding:0.85rem 1rem;border:1px solid #B5C8D4}
+.sec-title{font-size:12px;font-weight:500;color:#7A746C;padding:8px 0 4px;border-bottom:1px solid #EDE9E4;margin-bottom:4px}
+.day-card{border:1px solid #B8D0C7;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#FFFFFF}
+.day-head{padding:8px 14px;background:#EBF2EE;font-size:13px;font-weight:500;border-bottom:1px solid #B8D0C7;color:#4A6B5C}
+.slot-block{padding:8px 14px;border-top:1px solid #EDE9E4}
+.slot-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px}
+.slot-detail{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hours-pill{font-size:12px;padding:2px 8px;border-radius:99px;background:#EBF2EE;color:#4A6B5C;min-width:36px;text-align:center}
+.hours-pill.err{background:#F2EBEB;color:#6B4848}
+.slot-tag{font-size:12px;padding:2px 10px;border-radius:99px;font-weight:500}
+.time-pair{display:inline-flex;align-items:center;gap:3px}
+.time-pair select{width:60px;padding:5px 4px;font-size:13px;text-align:center;border:1px solid #E2DDD8;border-radius:6px;background:#FFFFFF}
+.time-colon{font-size:14px;font-weight:600;color:#3A3632}
+.time-sep{font-size:13px;color:#ABA49C;padding:0 2px}
+.batch-block{border:1px solid #EDE9E4;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#FFFFFF}
+.batch-head{padding:8px 14px;background:#E8EFF4;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;border-bottom:1px solid #B5C8D4}
+.badge-done{font-size:11px;padding:2px 8px;border-radius:99px;background:#EBF2EE;color:#4A6B5C}
+.badge-wait{font-size:11px;padding:2px 8px;border-radius:99px;background:#E8EFF4;color:#3D6070}
+.person-tag{font-size:13px;padding:2px 10px;border-radius:99px;cursor:pointer;transition:opacity 0.15s;display:inline-block}
+.person-tag:hover{opacity:0.75}
+.person-detail-panel{border:1px solid #B5C8D4;border-radius:10px;margin-top:10px;overflow:hidden;background:#FFFFFF}
+.person-detail-head{padding:10px 14px;background:#E8EFF4;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #B5C8D4}
+.detail-close{background:none;border:none;font-size:18px;cursor:pointer;color:#7A746C;padding:0 4px;line-height:1}
+.detail-close:hover{color:#3A3632}
+.detail-table{width:100%;border-collapse:collapse;font-size:13px}
+.detail-table th{text-align:left;font-size:12px;font-weight:500;color:#7A746C;padding:7px 14px;border-bottom:1px solid #EDE9E4;background:#E8EFF4}
+.detail-table td{padding:9px 14px;border-bottom:1px solid #EDE9E4;color:#3A3632}
+.detail-table tr:last-child td{border-bottom:none}
+.name-btn{background:none;border:none;cursor:pointer;font-size:13px;color:#3D6070;text-decoration:underline;padding:0;font-family:inherit}
+.name-btn:hover{opacity:0.75}
+input[type=checkbox]{cursor:pointer;accent-color:#7A9BAD}
+.cal-nav{background:none;border:none;font-size:18px;cursor:pointer;padding:4px 10px;border-radius:6px;color:#3A3632;line-height:1}
+.cal-nav:hover{background:#E8EFF4}
+.cal-wd{font-size:11px;color:#ABA49C;text-align:center;padding:4px 0;font-weight:500}
+.cal-wd.wknd{color:#A88080}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:13px;cursor:pointer;transition:background 0.12s;border:1.5px solid transparent;user-select:none}
+.cal-day:hover:not(.empty):not(.other-m){background:#E8EFF4}
+.cal-day.other-m{color:#ABA49C;cursor:default;pointer-events:none}
+.cal-day.wknd-d{color:#A88080}
+.cal-day.selected{background:#7A9BAD!important;color:#fff!important;border-color:#7A9BAD;font-weight:600}
+.cal-day.wknd-d.selected{background:#A88080!important;border-color:#A88080!important}
+.cal-day.today-d{border-color:#7A9BAD;color:#7A9BAD;font-weight:600}
+.sel-tag{font-size:12px;padding:3px 10px;border-radius:99px;background:#7A9BAD;color:#fff;display:inline-flex;align-items:center;gap:4px}
+.sel-tag.wknd-tag{background:#A88080}
+.sel-tag-x{background:none;border:none;color:#fff;cursor:pointer;font-size:14px;line-height:1;padding:0;opacity:0.7}
+.sel-tag-x:hover{opacity:1}
+.preview-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.preview-table th{background:#E8EFF4;padding:6px 10px;text-align:left;font-size:12px;color:#7A746C;border:1px solid #EDE9E4}
+.preview-table td{padding:6px 10px;border:1px solid #EDE9E4}
+.preview-table tr:hover td{background:#E8EFF4}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-icon">📋</div>
+    <div>
+      <div class="topbar-title">現場支援排班管理</div>
+      <div class="topbar-dept">物流推進整合部 — 營運指導課</div>
+    </div>
+  </div>
+  <span class="topbar-save" id="save-status"></span>
+</div>
+
+<div class="container" style="border:2px solid #B5C8D4;border-radius:12px;overflow:hidden;margin-top:1.5rem;margin-bottom:1.5rem;background:#FFFFFF;padding:0"><div style="padding:1.5rem 1rem">
+<div class="tab-wrap">
+  <button class="tab active" onclick="showTab('staff')">人員總覽</button>
+  <button class="tab" onclick="showTab('import-staff')">匯入人員</button>
+  <button class="tab" onclick="showTab('import-sched')">更新排班表</button>
+  <button class="tab" onclick="showTab('plan')">建立支援</button>
+  <button class="tab" onclick="showTab('history')">歷史紀錄</button>
+  <button class="tab" onclick="showTab('import-history')">匯入歷史</button>
+</div>
+
+<!-- 人員總覽 -->
+<div class="sec active" id="tab-staff">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:4px">課內人員 <span id="sc" style="color:#888;font-weight:400"></span></div>
+    <div style="font-size:12px;color:#888;margin-bottom:10px"><span class="chip chip-purple">排班制</span> 需對照輪休表　<span class="chip chip-green">非排班制</span> 隨時可支援</div>
+    <div id="slist"><div class="empty">請先匯入人員名單</div></div>
+  </div>
+
+  <!-- 衝突設定 -->
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:4px;color:#3A3632">衝突設定 <span style="font-weight:400;font-size:12px;color:#7A746C">設定不能同時段支援的人員配對</span></div>
+    <div id="conflict-list" style="margin-bottom:10px"></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <select id="cf-a" style="font-size:13px;width:120px"><option value="">選擇人員 A</option></select>
+      <span style="font-size:13px;color:#7A746C">不能與</span>
+      <select id="cf-b" style="font-size:13px;width:120px"><option value="">選擇人員 B</option></select>
+      <span style="font-size:13px;color:#7A746C">同排</span>
+      <button class="btn btn-p" onclick="addConflict()" style="font-size:12px;padding:5px 12px">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- 匯入人員 -->
+<div class="sec" id="tab-import-staff">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">上傳人員名單 Excel</div>
+    <div class="hint">格式欄位：<strong>姓名、職稱、排班制</strong>（v=排班制，空白=非排班制）。職稱含「課長」或「副課長」自動標為管理職。</div>
+    <label class="upload-zone" id="dz-staff">
+      <input type="file" id="staff-input" accept=".xlsx,.xls" onchange="handleStaffFile(this.files[0])">
+      <div class="upload-icon">⬆️</div>
+      <div style="font-size:14px;color:var(--text2);font-weight:500;margin-bottom:4px">點擊或拖曳人員名單至此</div>
+      <div style="font-size:12px;color:var(--text3)">.xlsx / .xls</div>
+    </label>
+    <div id="staff-msg" style="margin-top:10px;font-size:13px"></div>
+  </div>
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">手動新增</div>
+    <div class="row">
+      <span class="lbl">姓名</span><input type="text" id="n-name" placeholder="姓名" style="width:90px">
+      <span class="lbl">職稱</span><input type="text" id="n-role" placeholder="職稱" style="width:90px">
+      <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" id="n-shift"> 排班制</label>
+      <button class="btn btn-p" onclick="addStaffManual()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- 更新排班表 -->
+<div class="sec" id="tab-import-sched">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">上傳輪休預定表</div>
+    <div class="hint">上傳輪休預定表 Excel，自動更新排班制人員的排休日期。</div>
+    <div id="sched-staff-warn" style="display:none;background:#F2EBEB;border:1px solid #D4B8B8;border-radius:8px;padding:10px 14px;font-size:12px;color:#6B4848;margin-bottom:10px;line-height:1.8">
+      ⚠ 尚未匯入人員名單！請先至「匯入人員」設定人員後，再上傳排班表，否則排休資料無法寫入。
+    </div>
+    <label class="upload-zone" id="dz-sched">
+      <input type="file" id="sched-input" accept=".xlsx,.xls" onchange="handleSchedFile(this.files[0])">
+      <div class="upload-icon">⬆️</div>
+      <div style="font-size:14px;color:var(--text2);font-weight:500;margin-bottom:4px">點擊或拖曳輪休預定表至此</div>
+      <div style="font-size:12px;color:var(--text3)">.xlsx / .xls</div>
+    </label>
+    <div id="sched-msg" style="margin-top:10px;font-size:13px"></div>
+  </div>
+  <div class="card" id="preview-card" style="display:none">
+    <div style="font-size:13px;font-weight:500;margin-bottom:10px">本期排休預覽</div>
+    <div id="preview-content"></div>
+  </div>
+</div>
+
+<!-- 建立支援 -->
+<div class="sec" id="tab-plan">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span class="step-badge">1</span><span class="step-label">Step 1　需求人數</span></div>
+    <div class="row">
+      <select id="g-count"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+      <span style="font-size:12px;color:#888">人　全部時段套用</span>
+    </div>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span class="step-badge">2</span><span class="step-label">Step 2　選擇支援日期（可多選不連續）</span></div>
+    <!-- 月曆 -->
+    <div style="max-width:340px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <button class="cal-nav" onclick="prevMonth()">‹</button>
+        <span style="font-size:14px;font-weight:600" id="cal-title"></span>
+        <button class="cal-nav" onclick="nextMonth()">›</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px" id="cal-weekdays"></div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:3px" id="cal-grid"></div>
+    </div>
+    <!-- 已選標籤 -->
+    <div style="margin-top:14px">
+      <div style="font-size:12px;color:#888;margin-bottom:6px">已選日期 <span id="sel-count" style="color:#1a1a1a;font-weight:500"></span>　<span style="color:#7A9BAD">點擊日期選取，再點取消</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;min-height:28px" id="sel-list">
+        <span style="font-size:12px;color:#bbb">尚未選擇任何日期</span>
+      </div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-p" onclick="buildDateGrid()" id="expand-btn" disabled>展開時段設定</button>
+      <button class="btn" onclick="clearDates()">清除全部</button>
+    </div>
+    <div id="date-grid" style="display:none;margin-top:14px">
+      <div style="font-size:12px;color:#888;margin-bottom:10px">勾選時段後設定起迄時間，工時自動計算</div>
+      <div id="day-blocks"></div>
+      <button class="btn btn-p" onclick="batchRecommend()">產生推薦建議</button>
+    </div>
+  </div>
+  <div id="batch-results" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span class="step-badge">3</span><span class="step-label">Step 3　確認推薦名單</span> <span id="batch-progress" style="font-size:12px;font-weight:400;color:#888;margin-left:8px"></span></div>
+    <div id="batch-list"></div>
+    <div id="batch-actions" style="margin-top:4px;display:none"><button class="btn btn-p" onclick="confirmAll()">全部確認送出</button></div>
+    <div id="notify-area" style="display:none;margin-top:16px">
+      <div style="font-size:13px;font-weight:500;margin-bottom:6px">群組通知訊息</div>
+      <div class="copybox" id="copy-text"></div>
+      <button class="btn" style="margin-top:8px" onclick="copyMsg(event)">複製訊息</button>
+    </div>
+  </div>
+</div>
+
+<!-- 歷史紀錄 -->
+<div class="sec" id="tab-history">
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">總場次</div><div class="stat-value" id="h-total">0</div></div>
+    <div class="stat-card"><div class="stat-label">派遣人次</div><div class="stat-value" id="h-pcount">0</div></div>
+    <div class="stat-card"><div class="stat-label">總支援時數</div><div class="stat-value" id="h-hours">0h</div></div>
+  </div>
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:4px">累積支援時數分布</div>
+    <div style="font-size:12px;color:#888;margin-bottom:10px">由高到低　管理職不計入　<span style="color:#7A9BAD">點擊姓名展開個人明細</span></div>
+    <div id="bar-chart"></div>
+    <div id="person-detail" style="display:none"></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+      <span style="font-size:13px;font-weight:500">派遣紀錄　<span style="font-size:12px;color:#888;font-weight:400">點擊人員名字展開個人明細</span></span>
+      <button class="btn" style="font-size:12px;padding:4px 12px" onclick="exportExcel()">匯出 Excel</button>
+    </div>
+    <div id="hlist"></div>
+  </div>
+</div>
+
+<!-- 匯入歷史紀錄 -->
+<div class="sec" id="tab-import-history">
+  <div class="card">
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">匯入歷史支援紀錄</div>
+    <div class="hint">上傳「派遣紀錄」格式的 Excel，系統會讀取每筆紀錄並合併至現有資料（重複的日期＋時段會自動略過）。<br>
+    欄位順序：<strong>日期（M/D）、星期、時段、時間區間、工時、支援人員（頓號分隔）、是否管理職補位、補位人員</strong></div>
+    <div class="hint-warn">⚠️ 匯入前請確認人員名單已設定完畢，否則人員統計可能不完整。</div>
+    <label class="upload-zone" id="dz-history">
+      <input type="file" id="history-input" accept=".xlsx,.xls" onchange="handleHistoryFile(this.files[0])">
+      <div class="upload-icon">⬆️</div>
+      <div style="font-size:14px;color:var(--text2);font-weight:500;margin-bottom:4px">點擊或拖曳歷史紀錄 Excel 至此</div>
+      <div style="font-size:12px;color:var(--text3)">.xlsx / .xls</div>
+    </label>
+    <div id="history-msg" style="margin-top:10px;font-size:13px"></div>
+  </div>
+  <div class="card" id="history-preview-card" style="display:none">
+    <div style="font-size:13px;font-weight:500;margin-bottom:8px">預覽 <span id="history-preview-count" style="font-weight:400;color:#888"></span></div>
+    <div style="overflow-x:auto"><table class="preview-table" id="history-preview-table"></table></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-p" id="confirm-import-btn" onclick="confirmImportHistory()">確認匯入</button>
+      <button class="btn" onclick="cancelImportHistory()">取消</button>
+    </div>
+  </div>
+</div>
+</div></div>
+
+<script>
+const MGR_KW=['課長','副課長','主任'];
+const OFF_CODES=['休','國','特','病','事','傷'];
+const WD=['日','一','二','三','四','五','六'];
+const SK='ops_support_v4';
+const HOURS=Array.from({length:15},(_,i)=>i+6);
+const MINS=[0,30];
+
+let staff=[],nextId=1,history=[],schedulePeriod='',conflicts=[];
+let batchRecs=[],daySlots={},openedPerson=null;
+let pendingImport=[];
+
+function isMgr(r){return MGR_KW.some(k=>r.includes(k));}
+function isOff(p,ds){if(!p.shift||!ds)return false;const[,m,d]=ds.split('-').map(Number);return !!(p.offDays&&p.offDays[`${m}/${d}`]);}
+function isAvail(p,ds){return !isOff(p,ds);}
+function fmtDate(ds){const[,m,d]=ds.split('-').map(Number);return`${m}/${d}（${WD[new Date(...ds.split('-').map(Number).map((v,i)=>i===1?v-1:v)).getDay()]}）`;}
+function pad(n){return String(n).padStart(2,'0');}
+function calcH(sh,sm,eh,em){const d=(eh*60+em-sh*60-sm)/60;return d>0?parseFloat(d.toFixed(1)):0;}
+
+// 將 M/D 字串轉換為 YYYY-MM-DD，年份根據當前時間判斷
+function parseDateStr(ds, refYear){
+  // ds: "2/10" or "4/20"
+  const clean = ds.toString().trim().replace(/[\/\-]/g,'/');
+  const parts = clean.split('/');
+  if(parts.length < 2) return null;
+  let m = parseInt(parts[0]), d = parseInt(parts[1]);
+  if(isNaN(m)||isNaN(d)) return null;
+  // 年份：若月份 > 當前月份推測為去年，否則當年
+  const now = new Date();
+  let y = refYear || now.getFullYear();
+  return `${y}-${pad(m)}-${pad(d)}`;
+}
+
+function saveData(){
+  try{localStorage.setItem(SK,JSON.stringify({staff,history,nextId,schedulePeriod,conflicts}));
+  document.getElementById('save-status').textContent='已儲存 '+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});}catch(e){}
+}
+function loadData(){
+  try{const raw=localStorage.getItem(SK);
+    if(raw){const d=JSON.parse(raw);if(d.staff&&d.staff.length){staff=d.staff;history=d.history||[];nextId=d.nextId||12;schedulePeriod=d.schedulePeriod||'';conflicts=d.conflicts||[];
+      document.getElementById('save-status').textContent=`已載入存檔${schedulePeriod?' 本期：'+schedulePeriod:''}`;
+      recomputeStats();renderStaff();renderConflicts();
+      // 排班表有資料時還原預覽
+      const hasOffDays=staff.some(p=>p.offDays&&Object.keys(p.offDays).length>0);
+      if(hasOffDays) renderPreview();
+      return;}}
+  }catch(e){}
+}
+
+function recomputeStats(){staff.forEach(p=>{p.hours=0;p.count=0;});history.forEach(h=>{h.persons.forEach(r=>{const p=staff.find(s=>s.name===r.name);if(p&&!p.mgr){p.hours+=h.hours;p.count++;}});});}
+
+function showTab(id){
+  const ids=['staff','import-staff','import-sched','plan','history','import-history'];
+  document.querySelectorAll('.tab-wrap .tab').forEach((t,i)=>t.classList.toggle('active',ids[i]===id));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if(id==='history'){openedPerson=null;renderHistory();}
+  if(id==='staff')renderStaff();
+  if(id==='import-sched'){
+    const warn=document.getElementById('sched-staff-warn');
+    if(warn) warn.style.display=staff.filter(p=>p.shift).length===0?'block':'none';
+  }
+}
+
+// ── 匯入歷史紀錄 ──
+function handleHistoryFile(file){
+  if(!file)return;
+  if(typeof XLSX==='undefined'){setTimeout(()=>handleHistoryFile(file),400);return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      // 找「派遣紀錄」工作表，若無則取第一個
+      const sheetName=wb.SheetNames.find(n=>n.includes('派遣紀錄'))||wb.SheetNames[0];
+      const ws=wb.Sheets[sheetName];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+
+      // 嘗試推斷年份：找到最小的月份，若 <= 當前月份視為當年，否則去年
+      const now=new Date();
+      const curY=now.getFullYear();
+
+      pendingImport=[];
+      const skipped=[];
+
+      rows.forEach((r,i)=>{
+        // 欄位: 日期, 星期, 時段, 時間區間, 工時, 支援人員, 是否管理職補位, 補位人員
+        const dateRaw=(r['日期']||r[0]||'').toString().trim();
+        const slot=(r['時段']||r[2]||'').toString().trim();
+        const timeStr=(r['時間區間']||r[3]||'').toString().trim();
+        const hours=parseFloat((r['工時']||r[4]||0).toString());
+        const personsRaw=(r['支援人員']||r[5]||'').toString().trim();
+        const isFillStr=(r['是否管理職補位']||r[6]||'').toString().trim();
+        const fillRaw=(r['補位人員']||r[7]||'').toString().trim();
+
+        if(!dateRaw||!slot||!personsRaw) return;
+
+        // 解析日期
+        let ds=null;
+        if(dateRaw.includes('-')&&dateRaw.split('-').length===3){
+          ds=dateRaw; // 已是 YYYY-MM-DD
+        } else {
+          // M/D 格式 — 推斷年份
+          const parts=dateRaw.replace(/[\/\-]/g,'/').split('/');
+          const m=parseInt(parts[0]);
+          // 若月份在當前月份之後很多（>3個月），推斷為去年
+          let y=curY;
+          if(m>now.getMonth()+1+3) y=curY-1;
+          if(parts.length>=3) y=parseInt(parts[0]),ds=`${y}-${pad(parseInt(parts[1]))}-${pad(parseInt(parts[2]))}`;
+          else ds=`${y}-${pad(m)}-${pad(parseInt(parts[1]))}`;
+        }
+        if(!ds)return;
+
+        // 解析支援人員
+        const normalNames=personsRaw.split(/[、,，\s]+/).map(n=>n.trim()).filter(Boolean);
+        const fillNames=fillRaw?fillRaw.split(/[、,，\s]+/).map(n=>n.trim()).filter(Boolean):[];
+
+        const persons=[
+          ...normalNames.map(name=>{const p=staff.find(s=>s.name===name);return{name,role:p?p.role:'',mgr:p?p.mgr:false,isMgrFill:false};}),
+          ...fillNames.map(name=>{const p=staff.find(s=>s.name===name);return{name,role:p?p.role:'',mgr:true,isMgrFill:true};})
+        ];
+
+        // 重複判斷：日期 + 時段 + 時間區間 + 人員名單 全部相同才算重複
+        const incomingNames=[...normalNames,...fillNames].sort().join(',');
+        const exists=history.some(h=>{
+          if(h.date!==ds||h.slot!==slot) return false;
+          if(timeStr&&h.timeStr&&h.timeStr!==timeStr) return false;
+          const existNames=h.persons.map(p=>p.name).sort().join(',');
+          return existNames===incomingNames;
+        });
+        if(exists){skipped.push(`${ds} ${slot} ${timeStr||''}`);return;}
+
+        pendingImport.push({date:ds,slot,hours:isNaN(hours)?0:hours,timeStr,persons});
+      });
+
+      if(!pendingImport.length){
+        document.getElementById('history-msg').innerHTML=`<span style="color:var(--amber)">沒有可匯入的新紀錄${skipped.length?`（已略過 ${skipped.length} 筆重複）`:'，請確認格式是否正確'}</span>`;
+        document.getElementById('history-preview-card').style.display='none';
+        return;
+      }
+
+      // 顯示預覽
+      document.getElementById('history-preview-count').textContent=`共 ${pendingImport.length} 筆${skipped.length?`，略過 ${skipped.length} 筆重複`:''}`;
+      const tbody=pendingImport.map(h=>`<tr>
+        <td>${fmtDate(h.date)}</td>
+        <td><span style="padding:2px 8px;border-radius:99px;font-size:12px;${h.slot==='上午'?'background:#EAF0ED;color:#4A6358':'background:#E8EFF3;color:#3D6070'}">${h.slot}</span></td>
+        <td style="color:#888">${h.timeStr||'—'}</td>
+        <td>${h.hours}h</td>
+        <td>${h.persons.filter(p=>!p.isMgrFill).map(p=>p.name).join('、')}</td>
+        <td style="color:#e67700">${h.persons.filter(p=>p.isMgrFill).map(p=>p.name).join('、')||'—'}</td>
+      </tr>`).join('');
+      document.getElementById('history-preview-table').innerHTML=
+        `<thead><tr><th>日期</th><th>時段</th><th>時間</th><th>工時</th><th>支援人員</th><th>補位</th></tr></thead><tbody>${tbody}</tbody>`;
+      document.getElementById('history-preview-card').style.display='block';
+      document.getElementById('history-msg').innerHTML=`<span style="color:var(--accent)">已解析 ${pendingImport.length} 筆，請確認後匯入</span>`;
+    }catch(err){
+      document.getElementById('history-msg').innerHTML='<span style="color:var(--red)">讀取失敗：'+err.message+'</span>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function confirmImportHistory(){
+  if(!pendingImport.length)return;
+  // 依日期排序後插入（舊的放後面）
+  pendingImport.sort((a,b)=>b.date.localeCompare(a.date));
+  pendingImport.forEach(h=>history.push(h));
+  // 依日期重新排序
+  history.sort((a,b)=>b.date.localeCompare(a.date)||a.slot.localeCompare(b.slot));
+  recomputeStats();
+  document.getElementById('history-msg').innerHTML=`<span style="color:var(--green)">成功匯入 ${pendingImport.length} 筆紀錄！</span>`;
+  document.getElementById('history-preview-card').style.display='none';
+  pendingImport=[];
+  saveData();
+  renderStaff();
+}
+function cancelImportHistory(){
+  pendingImport=[];
+  document.getElementById('history-preview-card').style.display='none';
+  document.getElementById('history-msg').textContent='';
+  document.getElementById('history-input').value='';
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const el=document.getElementById('dz-history');
+  if(el){
+    el.addEventListener('dragover',e=>{e.preventDefault();el.style.background='#EAF0ED';el.style.borderColor='#999'});
+    el.addEventListener('dragleave',()=>{el.style.background='';el.style.borderColor=''});
+    el.addEventListener('drop',e=>{e.preventDefault();el.style.background='';el.style.borderColor='';handleHistoryFile(e.dataTransfer.files[0]);});
+  }
+});
+
+// 個人明細
+function togglePersonDetail(name){
+  const panel=document.getElementById('person-detail');
+  if(openedPerson===name){panel.style.display='none';openedPerson=null;renderBarChart();return;}
+  openedPerson=name;
+  const p=staff.find(s=>s.name===name);
+  const records=history.filter(h=>h.persons.some(r=>r.name===name));
+  const totalH=records.reduce((a,h)=>a+h.hours,0);
+  panel.style.display='block';
+  panel.innerHTML=`<div class="person-detail-panel">
+    <div class="person-detail-head">
+      <div><span style="font-size:14px;font-weight:500">${name}</span>
+        <span style="font-size:12px;color:#888;margin-left:8px">${p?p.role:''}</span>
+        <span class="hours-chip" style="margin-left:8px">累積 ${totalH}h　${records.length}次</span></div>
+      <button class="detail-close" onclick="togglePersonDetail('${name}')">×</button>
+    </div>
+    ${records.length?`<table class="detail-table">
+      <thead><tr><th>日期</th><th>時段</th><th>時間區間</th><th>工時</th></tr></thead>
+      <tbody>${records.map(h=>`<tr>
+        <td>${fmtDate(h.date)}</td>
+        <td><span style="padding:2px 8px;border-radius:99px;font-size:12px;${h.slot==='上午'?'background:#EAF0ED;color:#4A6358':'background:#E8EFF3;color:#3D6070'}">${h.slot}</span></td>
+        <td style="color:#888">${h.timeStr||'—'}</td>
+        <td><span class="chip chip-green">${h.hours}h</span></td>
+      </tr>`).join('')}</tbody></table>`:'<div class="empty">尚無支援紀錄</div>'}
+  </div>`;
+  renderBarChart();
+}
+
+function renderBarChart(){
+  const reg=[...staff.filter(p=>!p.mgr)].sort((a,b)=>b.hours-a.hours);
+  const maxH=Math.max(...reg.map(p=>p.hours),1);
+  document.getElementById('bar-chart').innerHTML=reg.length?reg.map(p=>{
+    const isOpen=openedPerson===p.name;
+    return`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <button class="name-btn" style="min-width:52px;text-align:right;${isOpen?'font-weight:600;color:#4A6358':''}" onclick="togglePersonDetail('${p.name}')">${p.name}${isOpen?' ▲':''}</button>
+      <div style="flex:1;background:var(--border);border-radius:99px;height:6px;overflow:hidden">
+        <div style="width:${Math.round(p.hours/maxH*100)}%;height:7px;border-radius:99px;background:${isOpen?'var(--text)':'var(--accent)'};transition:width 0.4s ease"></div></div>
+      <span style="font-size:12px;color:#888;min-width:56px">${p.hours}h / ${p.count}次</span>
+    </div>`;
+  }).join(''):'<div class="empty">尚無人員</div>';
+}
+
+function timePairHtml(idH,idM,selH,selM,cb){
+  const hO=HOURS.map(h=>`<option value="${h}"${h===selH?' selected':''}>${pad(h)}</option>`).join('');
+  const mO=MINS.map(m=>`<option value="${m}"${m===selM?' selected':''}>${pad(m)}</option>`).join('');
+  return`<span class="time-pair"><select id="${idH}" onchange="${cb}">${hO}</select><span class="time-colon">:</span><select id="${idM}" onchange="${cb}">${mO}</select></span>`;
+}
+function updateSlotHours(ds,part){
+  const sl=daySlots[ds][part];
+  const shEl=document.getElementById(`sh-${ds}-${part}`),smEl=document.getElementById(`sm-${ds}-${part}`);
+  const ehEl=document.getElementById(`eh-${ds}-${part}`),emEl=document.getElementById(`em-${ds}-${part}`);
+  const pillEl=document.getElementById(`hp-${ds}-${part}`);
+  if(!shEl)return;
+  sl.sh=+shEl.value;sl.sm=+smEl.value;sl.eh=+ehEl.value;sl.em=+emEl.value;
+  sl.hours=calcH(sl.sh,sl.sm,sl.eh,sl.em);sl.timeStr=`${pad(sl.sh)}:${pad(sl.sm)}～${pad(sl.eh)}:${pad(sl.em)}`;
+  if(pillEl){if(sl.hours>0){pillEl.textContent=sl.hours+'h';pillEl.className='hours-pill';}else{pillEl.textContent='?';pillEl.className='hours-pill err';}}
+}
+function toggleSlot(ds,part){
+  const chk=document.getElementById(`chk-${ds}-${part}`),det=document.getElementById(`det-${ds}-${part}`);
+  daySlots[ds][part].enabled=chk.checked;det.style.display=chk.checked?'flex':'none';
+}
+// ── 月曆相關 ──
+const _today=new Date();
+let _calY=_today.getFullYear(),_calM=_today.getMonth();
+let _selDates=new Set();
+
+function _pad(n){return String(n).padStart(2,'0');}
+function _toKey(y,m,d){return`${y}-${_pad(m+1)}-${_pad(d)}`;}
+function _fmtKey(k){const[,m,d]=k.split('-').map(Number);return`${m}/${d}（${WD[new Date(k).getDay()]}）`;}
+function _isWk(k){const dw=new Date(k).getDay();return dw===0||dw===6;}
+
+function renderCal(){
+  const y=_calY,m=_calM;
+  document.getElementById('cal-title').textContent=`${y} 年 ${m+1} 月`;
+  document.getElementById('cal-weekdays').innerHTML=
+    ['日','一','二','三','四','五','六'].map((w,i)=>`<div class="cal-wd${i===0||i===6?' wknd':''}">${w}</div>`).join('');
+  const firstDay=new Date(y,m,1).getDay();
+  const dim=new Date(y,m+1,0).getDate();
+  const diPrev=new Date(y,m,0).getDate();
+  const todKey=_toKey(_today.getFullYear(),_today.getMonth(),_today.getDate());
+  let cells='';
+  for(let i=0;i<firstDay;i++) cells+=`<div class="cal-day other-m">${diPrev-firstDay+1+i}</div>`;
+  for(let d=1;d<=dim;d++){
+    const k=_toKey(y,m,d);
+    const dw=new Date(y,m,d).getDay();
+    const isWk=dw===0||dw===6;
+    const isSel=_selDates.has(k);
+    const isTod=k===todKey;
+    let cls='cal-day';
+    if(isWk) cls+=' wknd-d';
+    if(isSel) cls+=' selected';
+    else if(isTod) cls+=' today-d';
+    cells+=`<div class="${cls}" onclick="toggleCalDate('${k}')">${d}</div>`;
+  }
+  const total=firstDay+dim;
+  const rem=(7-total%7)%7;
+  for(let d=1;d<=rem;d++) cells+=`<div class="cal-day other-m">${d}</div>`;
+  document.getElementById('cal-grid').innerHTML=cells;
+  _renderSelList();
+}
+function toggleCalDate(k){
+  if(_selDates.has(k)) _selDates.delete(k); else _selDates.add(k);
+  renderCal();
+}
+function clearDates(){_selDates.clear();renderCal();document.getElementById('date-grid').style.display='none';document.getElementById('batch-results').style.display='none';}
+function prevMonth(){if(_calM===0){_calY--;_calM=11;}else _calM--;renderCal();}
+function nextMonth(){if(_calM===11){_calY++;_calM=0;}else _calM++;renderCal();}
+function _renderSelList(){
+  const sorted=[..._selDates].sort();
+  const el=document.getElementById('sel-list');
+  const btn=document.getElementById('expand-btn');
+  document.getElementById('sel-count').textContent=sorted.length?`（${sorted.length} 天）`:'';
+  btn.disabled=sorted.length===0;
+  if(!sorted.length){el.innerHTML='<span style="font-size:12px;color:#bbb">尚未選擇任何日期</span>';return;}
+  el.innerHTML=sorted.map(k=>`<span class="sel-tag${_isWk(k)?' wknd-tag':''}">${_fmtKey(k)}<button class="sel-tag-x" onclick="toggleCalDate('${k}')">×</button></span>`).join('');
+}
+
+function buildDateGrid(){
+  const days=[..._selDates].sort();
+  if(!days.length){alert('請先選擇支援日期');return;}
+  daySlots={};
+  days.forEach(ds=>{
+    const dow=new Date(ds).getDay(),isWk=dow===0||dow===6;
+    daySlots[ds]={am:{enabled:!isWk,sh:8,sm:30,eh:11,em:30,hours:3,timeStr:'08:30～11:30'},pm:{enabled:!isWk,sh:13,sm:0,eh:17,em:0,hours:4,timeStr:'13:00～17:00'}};
+  });
+  document.getElementById('day-blocks').innerHTML=days.map(ds=>{
+    const[,m,d]=ds.split('-').map(Number),dow=new Date(ds).getDay(),wd=WD[dow],isWk=dow===0||dow===6,sl=daySlots[ds];
+    const makeSlot=(part,label,bg,tc,dsh,dsm,deh,dem,dh)=>{const en=sl[part].enabled,cb=`updateSlotHours('${ds}','${part}')`;
+      return`<div class="slot-block"><label class="slot-toggle"><input type="checkbox" id="chk-${ds}-${part}" ${en?'checked':''} onchange="toggleSlot('${ds}','${part}')"><span class="slot-tag" style="background:${bg};color:${tc}">${label}</span></label>
+        <div class="slot-detail" id="det-${ds}-${part}" style="display:${en?'flex':'none'}">
+          ${timePairHtml(`sh-${ds}-${part}`,`sm-${ds}-${part}`,dsh,dsm,cb)}<span class="time-sep">～</span>${timePairHtml(`eh-${ds}-${part}`,`em-${ds}-${part}`,deh,dem,cb)}
+          <span class="hours-pill" id="hp-${ds}-${part}">${dh}h</span></div></div>`;};
+    return`<div class="day-card"><div class="day-head" style="${isWk?'color:#e24b4a':''}">${m}/${d}（${wd}）${isWk?'　<span style="font-size:11px;font-weight:400">週末</span>':''}</div>
+      ${makeSlot('am','上午','#EAF0ED','#4A6358',8,30,11,30,3)}${makeSlot('pm','下午','#E8EFF3','#3D6070',13,0,17,0,4)}</div>`;}).join('');
+  document.getElementById('date-grid').style.display='block';
+  document.getElementById('batch-results').style.display='none';
+  document.getElementById('date-grid').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function batchRecommend(){
+  if(!staff.length){alert('請先匯入人員名單');return;}const n=parseInt(document.getElementById('g-count').value);
+  Object.keys(daySlots).forEach(ds=>{['am','pm'].forEach(part=>{const chk=document.getElementById(`chk-${ds}-${part}`);if(chk)daySlots[ds][part].enabled=chk.checked;updateSlotHours(ds,part);});});
+  const active=[];Object.keys(daySlots).sort().forEach(ds=>{['am','pm'].forEach(part=>{const sl=daySlots[ds][part];if(!sl.enabled)return;if(!sl.hours){alert(`${fmtDate(ds)} ${part==='am'?'上午':'下午'} 時間設定有誤`);return;}active.push({date:ds,slot:part==='am'?'上午':'下午',hours:sl.hours,timeStr:sl.timeStr});});});
+  if(!active.length){alert('請勾選至少一個時段');return;}
+  staff.forEach(p=>{p._bH=p.hours;p._bC=p.count;});
+  batchRecs=active.map(sl=>{const persons=pickBatch(sl.date,n,sl.hours);return{...sl,count:n,persons,confirmed:false};});
+  staff.forEach(p=>{delete p._bH;delete p._bC;});
+  renderBatchResults();document.getElementById('batch-results').style.display='block';
+}
+function pickBatch(date,n,slotH){
+  const regAvail=staff.filter(p=>!p.mgr&&isAvail(p,date)),mgrAvail=staff.filter(p=>p.mgr&&isAvail(p,date));
+  const chosen=[];let pool=[...regAvail];
+  for(let i=0;i<Math.min(n,pool.length);i++){
+    pool.sort((a,b)=>{const ah=a._bH!==undefined?a._bH:a.hours,bh=b._bH!==undefined?b._bH:b.hours;return ah!==bh?ah-bh:(a._bC||a.count)-(b._bC||b.count);});
+    const minH=pool[0]._bH!==undefined?pool[0]._bH:pool[0].hours,cands=pool.filter(p=>(p._bH!==undefined?p._bH:p.hours)===minH),pick=cands[Math.floor(Math.random()*cands.length)];
+    const minAll=Math.min(...regAvail.map(x=>x._bH!==undefined?x._bH:x.hours));
+    chosen.push({...pick,isMgrFill:false,reason:(pick._bH!==undefined?pick._bH:pick.hours)===minAll?`累積時數最少${cands.length>1?'，隨機抽選':''}`:` 時數較低`});
+    const sp=staff.find(s=>s.id===pick.id);if(sp){sp._bH=(sp._bH!==undefined?sp._bH:sp.hours)+slotH;sp._bC=(sp._bC||sp.count)+1;}
+    // 排除與已選人員有衝突的
+    const chosenNames=chosen.map(x=>x.name);
+    pool=pool.filter(p=>{
+      if(p.id===pick.id) return false;
+      return !conflicts.some(c=>(c[0]===p.name&&chosenNames.includes(c[1]))||(c[1]===p.name&&chosenNames.includes(c[0])));
+    });
+  }
+  if(chosen.length<n){let mp=[...mgrAvail];for(let i=chosen.length;i<n&&mp.length;i++){const pick=mp.splice(Math.floor(Math.random()*mp.length),1)[0];chosen.push({...pick,isMgrFill:true,reason:'人員不足，管理職補位'});}}
+  return chosen;
+}
+function renderBatchResults(){
+  const done=batchRecs.filter(r=>r.confirmed).length,total=batchRecs.length;
+  document.getElementById('batch-progress').textContent=`共 ${total} 個時段，已確認 ${done} 個`;
+  document.getElementById('batch-actions').style.display=done<total?'block':'none';
+  if(done===total&&total>0)buildBatchNotify();
+  document.getElementById('batch-list').innerHTML=batchRecs.map((rec,ri)=>`<div class="batch-block">
+    <div class="batch-head"><span>${fmtDate(rec.date)}　<span style="padding:2px 8px;border-radius:99px;font-size:12px;${rec.slot==='上午'?'background:#EAF0ED;color:#4A6358':'background:#E8EFF3;color:#3D6070'}">${rec.slot}</span>　${rec.timeStr}　${rec.hours}h　${rec.count}人</span>
+    ${rec.confirmed?'<span class="badge-done">已確認</span>':'<span class="badge-wait">待確認</span>'}</div>
+    <div style="padding:8px 14px">
+      ${rec.persons.map((p,pi)=>{const tc=p.mgr?'<span class="chip chip-amber">管理職</span>':p.shift?'<span class="chip chip-purple">排班制</span>':'<span class="chip chip-green">非排班制</span>';
+        return`<div class="rec-card ${rec.confirmed?'confirmed':p.isMgrFill?'mgr-fill':''}">
+          <div class="score-dot" style="background:${rec.confirmed?'#6B8C7D':p.isMgrFill?'#C4967A':'#7A9BAD'}"></div>
+          <div style="flex:1"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
+            <span style="font-size:14px;font-weight:500">${p.name}</span><span style="font-size:12px;color:#888">${p.role}</span>
+            ${tc}${!p.mgr?`<span class="chip chip-green">累積 ${p.hours}h</span>`:''}
+            ${p.isMgrFill?'<span class="chip chip-amber">補位</span>':''}
+            ${p.warned?'<span style="font-size:11px;background:#F2EBEB;color:#6B4848;padding:2px 7px;border-radius:99px">手動調整（含警告）</span>':p.swapped?'<span style="font-size:11px;background:#F0EBE3;color:#6B5A40;padding:2px 7px;border-radius:99px">手動調整</span>':''}
+          </div><div style="font-size:12px;color:#888">${p.reason}</div></div>
+          ${!rec.confirmed?`<button class="btn" style="font-size:12px;padding:3px 8px" onclick="startSwap(${ri},${pi})">換人</button>`:''}
+        </div>`;}).join('')}
+      <div id="swap-area-${ri}" style="margin-top:4px"></div>
+      ${!rec.confirmed?`<button class="btn btn-p" style="font-size:12px;margin-top:6px" onclick="confirmOne(${ri})">確認此時段</button>`:''}
+    </div></div>`).join('');
+}
+function startSwap(ri,pi){
+  const rec=batchRecs[ri],inRec=new Set(rec.persons.map(p=>p.id));
+  const reg=staff.filter(p=>!p.mgr&&!inRec.has(p.id)&&isAvail(p,rec.date)).sort((a,b)=>a.hours-b.hours);
+  const mgr=staff.filter(p=>p.mgr&&!inRec.has(p.id)&&isAvail(p,rec.date));
+  const cands=[...reg,...mgr];if(!cands.length){alert('沒有其他可用人員');return;}
+  document.getElementById(`swap-area-${ri}`).innerHTML=`<div style="background:#E8EFF4;border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid #B5C8D4">
+    <span style="font-size:12px;color:#888">換掉第 ${pi+1} 位：</span>
+    <select id="swap-sel-${ri}" style="font-size:13px">${cands.map(p=>`<option value="${p.id}">${p.name}（${p.role}）累積${p.hours}h</option>`).join('')}</select>
+    <button class="btn btn-p" style="font-size:12px;padding:4px 10px" onclick="doSwap(${ri},${pi})">確認換人</button>
+    <button class="btn" style="font-size:12px;padding:4px 8px" onclick="document.getElementById('swap-area-${ri}').innerHTML=''">取消</button></div>`;
+}
+function doSwap(ri,pi){
+  const sel=document.getElementById(`swap-sel-${ri}`);if(!sel)return;
+  const p=staff.find(s=>s.id===+sel.value);
+  const rec=batchRecs[ri];
+  const warnings=[];
+  if(isOff(p,rec.date)) warnings.push(`⚠ ${p.name} 在 ${fmtDate(rec.date)} 為排休日`);
+  const chosenNames=rec.persons.filter((_,idx)=>idx!==pi).map(x=>x.name);
+  const cf=conflicts.find(c=>(c[0]===p.name&&chosenNames.includes(c[1]))||(c[1]===p.name&&chosenNames.includes(c[0])));
+  if(cf){const other=cf[0]===p.name?cf[1]:cf[0];warnings.push(`⚠ ${p.name} 與 ${other} 設定為不同排`);}
+  if(warnings.length&&!confirm(warnings.join('\n')+'\n\n確定仍要選擇此人員嗎？')) return;
+  batchRecs[ri].persons[pi]={...p,isMgrFill:p.mgr,reason:'管理者手動調整',swapped:true,warned:warnings.length>0};
+  document.getElementById(`swap-area-${ri}`).innerHTML='';
+  renderBatchResults();
+}
+
+function confirmOne(ri){
+  const rec=batchRecs[ri];
+  history.unshift({date:rec.date,slot:rec.slot,hours:rec.hours,timeStr:rec.timeStr,persons:rec.persons.map(r=>({name:r.name,role:r.role,mgr:r.mgr||false,isMgrFill:r.isMgrFill||false}))});
+  rec.persons.forEach(r=>{const p=staff.find(s=>s.name===r.name);if(p&&!p.mgr){p.hours+=rec.hours;p.count++;}});
+  rec.confirmed=true;recomputeStats();renderBatchResults();saveData();
+}
+function confirmAll(){batchRecs.forEach((_,i)=>{if(!batchRecs[i].confirmed)confirmOne(i);});}
+function buildBatchNotify(){
+  const lines=batchRecs.map(rec=>`${fmtDate(rec.date)} ${rec.slot}（${rec.timeStr}）\n支援同仁：${rec.persons.map(p=>p.name).join('、')}`).join('\n\n');
+  document.getElementById('copy-text').textContent=`【現場支援通知】\n\n以下為本次現場理貨支援安排，請相關同仁確認出勤時段：\n\n${lines}\n\n如有疑問請提出確認。\n\n感謝各位同仁配合！\n物流推進整合部 營運指導課`;
+  document.getElementById('notify-area').style.display='block';
+}
+function copyMsg(e){navigator.clipboard.writeText(document.getElementById('copy-text').textContent).then(()=>{const b=e.target;b.textContent='已複製';setTimeout(()=>b.textContent='複製訊息',2000);}).catch(()=>{const t=document.getElementById('copy-text');const r=document.createRange();r.selectNode(t);window.getSelection().removeAllRanges();window.getSelection().addRange(r);document.execCommand('copy');window.getSelection().removeAllRanges();const b=e.target;b.textContent='已複製';setTimeout(()=>b.textContent='複製訊息',2000);});}
+
+function handleStaffFile(file){if(!file)return;if(typeof XLSX==='undefined'){setTimeout(()=>handleStaffFile(file),400);return;}
+  const reader=new FileReader();reader.onload=e=>{try{const wb=XLSX.read(e.target.result,{type:'array'}),ws=wb.Sheets[wb.SheetNames[0]],rows=XLSX.utils.sheet_to_json(ws,{defval:''});let added=0,updated=0;
+    rows.forEach(r=>{const name=(r['姓名']||'').toString().trim(),role=(r['職稱']||'').toString().trim(),sv=(r['排班制']||r['排班制\n（v=是）']||'').toString().trim().toLowerCase(),isShift=sv==='v'||sv==='是'||sv==='y';if(!name)return;
+      const ex=staff.find(s=>s.name===name);if(ex){ex.role=role||ex.role;ex.shift=isShift;ex.mgr=isMgr(ex.role);updated++;}else{staff.push({id:nextId++,name,role,mgr:isMgr(role),shift:isShift,hours:0,count:0,offDays:{}});added++;}});
+    document.getElementById('staff-msg').innerHTML=`<span style="color:var(--green)">匯入成功：新增 ${added} 人${updated?`、更新 ${updated} 人`:''}</span>`;
+    recomputeStats();renderStaff();saveData();}catch(err){document.getElementById('staff-msg').innerHTML='<span style="color:var(--red)">讀取失敗：'+err.message+'</span>';}};reader.readAsArrayBuffer(file);}
+function handleSchedFile(file){
+  if(!file)return;if(typeof XLSX==='undefined'){setTimeout(()=>handleSchedFile(file),400);return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      let updated=0;
+      // 收集所有工作表的排休資料，最後合併（有資料的優先）
+      const allOffDays={}; // {姓名: {日期: 假別}}
+
+      wb.SheetNames.forEach(sn=>{
+        const ws=wb.Sheets[sn];
+        const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+
+        // 抓週期
+        for(let r=0;r<raw.length;r++){
+          const rs=raw[r].join('');
+          if(rs.includes('週期：')&&!schedulePeriod){
+            const mm=rs.match(/週期：([^\s：（(]+)/);
+            if(mm) schedulePeriod=mm[1].trim();
+          }
+        }
+
+        // 找姓名列（第2欄 index=1 為「姓名」）
+        let nameRow=-1;
+        for(let r=0;r<raw.length;r++){
+          if((raw[r][1]||'').toString().trim()==='姓名'){nameRow=r;break;}
+        }
+        if(nameRow<0) return;
+
+        // 月份在 nameRow 同列（欄3起），日期在 nameRow+1
+        const mRow=raw[nameRow],dRow=raw[nameRow+1],dateMap={};
+        for(let c=3;c<mRow.length;c++){
+          const mo=parseInt(mRow[c]),dy=parseInt(dRow[c]);
+          if(!isNaN(mo)&&!isNaN(dy)&&mo>=1&&mo<=12&&dy>=1&&dy<=31)
+            dateMap[c]=`${mo}/${dy}`;
+        }
+        if(Object.keys(dateMap).length===0) return;
+
+        // 員工資料從 nameRow+3 開始（跳過星期列）
+        for(let r=nameRow+3;r<raw.length;r++){
+          const row=raw[r];
+          const name=(row[1]||'').toString().trim();
+          if(!name||['姓名','出勤人數','總人數'].includes(name)||
+             ['輪休','國定','特休','備'].some(k=>name.startsWith(k))) break;
+          const ex=staff.find(s=>s.name===name);
+          if(!ex) continue;
+
+          // 讀這個工作表的排休
+          const offDays={};
+          for(const[c,date]of Object.entries(dateMap)){
+            const val=(row[c]||'').toString().trim();
+            if(OFF_CODES.includes(val)) offDays[date]=val;
+          }
+
+          // 只有有資料才記錄（避免空工作表覆蓋）
+          if(Object.keys(offDays).length>0){
+            if(!allOffDays[name]) allOffDays[name]={};
+            Object.assign(allOffDays[name],offDays);
+          }
+        }
+      });
+
+      // 將收集到的排休合併進 staff，同時清除今天以前的過期資料
+      const today=new Date();today.setHours(0,0,0,0);
+      const nowY=today.getFullYear(),nowM=today.getMonth()+1;
+
+      for(const[name,newOffDays]of Object.entries(allOffDays)){
+        const ex=staff.find(s=>s.name===name);
+        if(!ex) continue;
+
+        // 保留既有排休中今天以後且不在本次更新範圍的
+        const newDates=new Set(Object.values(newOffDays));
+        const kept={};
+        for(const[d,v]of Object.entries(ex.offDays||{})){
+          if(newDates.has(d)) continue;
+          const parts=d.split('/');
+          if(parts.length===2){
+            const mo=parseInt(parts[0]),dy=parseInt(parts[1]);
+            // 年份推算：排班表日期若比今天早超過6個月，視為明年；若晚超過6個月，視為去年
+            const yr=(()=>{
+              // 先試今年
+              const dtThisYear=new Date(nowY,mo-1,dy);
+              const diffDays=(dtThisYear-today)/(1000*60*60*24);
+              if(diffDays>=-1) return nowY; // 今天或未來 → 今年
+              // 已過期：看差距，超過180天才算去年（避免誤判）
+              if(diffDays<-180) return nowY+1; // 很久以前 → 明年（跨年排班表）
+              return nowY; // 近期已過 → 今年（正常過期，應清除）
+            })();
+            const dt=new Date(yr,mo-1,dy);
+            if(dt>=today) kept[d]=v;
+          }
+        }
+        // newOffDays 也要過濾今日之前（排班表可能含過去日期）
+        const filteredNew={};
+        for(const[d,v]of Object.entries(newOffDays)){
+          const parts=d.split('/');
+          if(parts.length===2){
+            const mo=parseInt(parts[0]),dy=parseInt(parts[1]);
+            const dtTY=new Date(nowY,mo-1,dy);
+            const diff=(dtTY-today)/(1000*60*60*24);
+            const yr2=diff>=-1?nowY:(diff<-180?nowY+1:nowY);
+            const dt=new Date(yr2,mo-1,dy);
+            if(dt>=today) filteredNew[d]=v;
+          }
+        }
+        ex.offDays={...kept,...filteredNew};
+        updated++;
+      }
+
+      if(schedulePeriod) document.getElementById('save-status').textContent=`本期：${schedulePeriod}`;
+      document.getElementById('sched-msg').innerHTML=
+        updated>0
+          ?`<span style="color:#4A6B5C">排休資料更新：${updated} 人已更新</span>`
+          :`<span style="color:#6B4848">未找到符合人員的排休資料，請確認人員名單是否已匯入</span>`;
+      renderPreview();renderStaff();saveData();
+    }catch(err){
+      document.getElementById('sched-msg').innerHTML=
+        `<span style="color:#6B4848">讀取失敗：${err.message}</span>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+['dz-staff','dz-sched'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.addEventListener('dragover',e=>{e.preventDefault();el.style.background='#EAF0ED';el.style.borderColor='#999'});el.addEventListener('dragleave',()=>{el.style.background='';el.style.borderColor=''});el.addEventListener('drop',e=>{e.preventDefault();el.style.background='';el.style.borderColor='';(id==='dz-staff'?handleStaffFile:handleSchedFile)(e.dataTransfer.files[0]);});});
+
+function addStaffManual(){const name=document.getElementById('n-name').value.trim();if(!name)return;if(staff.find(s=>s.name===name)){alert('已存在');return;}const role=document.getElementById('n-role').value.trim(),shift=document.getElementById('n-shift').checked;staff.push({id:nextId++,name,role,mgr:isMgr(role),shift,hours:0,count:0,offDays:{}});document.getElementById('n-name').value='';document.getElementById('n-role').value='';document.getElementById('n-shift').checked=false;recomputeStats();renderStaff();saveData();}
+function removePerson(id){if(!confirm('確認移除此人員？'))return;staff=staff.filter(p=>p.id!==id);recomputeStats();renderStaff();saveData();}
+function deleteHistory(idx){if(!confirm('確認刪除這筆支援紀錄？'))return;history.splice(idx,1);recomputeStats();renderHistory();renderStaff();saveData();}
+
+function renderPreview(){
+  const card=document.getElementById('preview-card'),ss=staff.filter(p=>p.shift);
+  if(!ss.length){card.style.display='none';return;}
+  card.style.display='block';
+  document.getElementById('preview-content').innerHTML=ss.map(p=>{
+    const entries=Object.entries(p.offDays).sort((a,b)=>a[0].localeCompare(b[0]));
+    const count=entries.length;
+    const id='prev-'+p.id;
+    const tags=entries.map(([date,type])=>`<span style="font-size:11px;padding:2px 6px;border-radius:99px;${type==='國'?'background:#F0EBE3;color:#6B5A40':'background:#F2EBEB;color:#6B4848'};margin:2px;display:inline-block">${date} ${type==='國'?'國定':'輪休'}</span>`).join('');
+    return`<div class="prow" style="align-items:flex-start">
+      <div class="ava ${p.mgr?'mgr':''}">${p.name.slice(0,2)}</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:14px">${p.name}</span>
+          <span style="font-size:12px;color:#7A746C">${p.role}</span>
+          ${count?`<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#E8EFF4;color:#3D6070">${count} 天排休</span>`:''}
+          ${count?`<button onclick="document.getElementById('${id}').style.display=document.getElementById('${id}').style.display==='none'?'block':'none';this.textContent=this.textContent==='展開'?'收合':'展開'" style="font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid #B5C8D4;background:transparent;color:#3D6070;cursor:pointer">展開</button>`:''}
+        </div>
+        <div id="${id}" style="display:none;line-height:2">${tags||'<span style="font-size:12px;color:#7A746C">本期無排休</span>'}</div>
+        ${!count?'<span style="font-size:12px;color:#7A746C">本期無排休</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStaff(){const el=document.getElementById('slist'),regular=staff.filter(p=>!p.mgr),mgrs=staff.filter(p=>p.mgr);
+  document.getElementById('sc').textContent=`（${regular.length} 人一般、${mgrs.length} 人管理職，共 ${staff.length} 人）`;
+  if(!staff.length){el.innerHTML='<div class="empty">請先匯入人員名單</div>';return;}
+  function row(p){const ac=p.mgr?'mgr':!p.shift?'nonshift':'';const chip=p.mgr?`<span class="chip chip-amber">管理職（補位）</span>`:`${p.shift?'<span class="chip chip-purple">排班制</span>':'<span class="chip chip-green">非排班制</span>'}`;
+    return`<div class="prow"><div class="ava ${ac}">${p.name.slice(0,2)}</div><div style="flex:1"><span style="font-size:14px">${p.name}</span><span style="font-size:12px;color:#888;margin-left:6px">${p.role}</span></div>${chip}<button class="btn btn-d" style="font-size:11px;padding:3px 7px" onclick="removePerson(${p.id})">移除</button></div>`;}
+  let html='';const sr=regular.filter(p=>p.shift),nr=regular.filter(p=>!p.shift);
+  if(sr.length){html+=`<div class="sec-title">排班制（${sr.length} 人）</div>`;html+=sr.map(row).join('');}
+  if(nr.length){html+=`<div class="sec-title" style="margin-top:8px">非排班制（${nr.length} 人）</div>`;html+=nr.map(row).join('');}
+  if(mgrs.length){html+=`<div class="sec-title" style="margin-top:8px">管理職（${mgrs.length} 人）</div>`;html+=mgrs.map(row).join('');}
+  el.innerHTML=html;renderConflicts();}
+
+function initConflictSelects(){
+  const sa=document.getElementById('cf-a');
+  const sb=document.getElementById('cf-b');
+  if(!sa||!sb) return;
+  const opts='<option value="">選擇人員</option>'+
+    staff.filter(p=>!p.mgr).map(p=>`<option value="${p.name}">${p.name}</option>`).join('');
+  sa.innerHTML=opts;
+  sb.innerHTML=opts;
+}
+function renderConflicts(){
+  initConflictSelects();
+  const el=document.getElementById('conflict-list');
+  if(!el) return;
+  if(!conflicts.length){
+    el.innerHTML='<div style="font-size:12px;color:#ABA49C;padding:4px 0">尚未設定衝突配對</div>';
+    return;
+  }
+  el.innerHTML=conflicts.map((c,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #EDE9E4">
+      <span style="font-size:13px;background:#F2EBEB;color:#6B4848;padding:2px 10px;border-radius:99px">${c[0]}</span>
+      <span style="font-size:12px;color:#7A746C">不能與</span>
+      <span style="font-size:13px;background:#F2EBEB;color:#6B4848;padding:2px 10px;border-radius:99px">${c[1]}</span>
+      <span style="font-size:12px;color:#7A746C">同排</span>
+      <button class="btn btn-d" style="font-size:11px;padding:2px 8px;margin-left:auto" onclick="removeConflict(${i})">移除</button>
+    </div>`).join('');
+}
+
+
+function addConflict(){
+  const a=document.getElementById('cf-a').value;
+  const b=document.getElementById('cf-b').value;
+  if(!a||!b){alert('請選擇兩位人員');return;}
+  if(a===b){alert('不能選同一人');return;}
+  const exists=conflicts.some(c=>(c[0]===a&&c[1]===b)||(c[0]===b&&c[1]===a));
+  if(exists){alert('此配對已存在');return;}
+  conflicts.push([a,b]);
+  document.getElementById('cf-a').value='';
+  document.getElementById('cf-b').value='';
+  renderConflicts();saveData();
+}
+function removeConflict(i){
+  conflicts.splice(i,1);
+  renderConflicts();saveData();
+}
+function hasConflict(names){
+  for(const[a,b]of conflicts){
+    if(names.includes(a)&&names.includes(b)) return[a,b];
+  }
+  return null;
+}
+function exportExcel(){if(typeof XLSX==='undefined'){alert('請稍後再試');return;}
+  const wb=XLSX.utils.book_new(),rows1=[['日期','星期','時段','時間區間','工時','支援人員','是否管理職補位','補位人員']];
+  history.forEach(h=>{const[,m,d]=h.date.split('-').map(Number),wd=WD[new Date(...h.date.split('-').map(Number).map((v,i)=>i===1?v-1:v)).getDay()];
+    const normal=h.persons.filter(p=>!p.isMgrFill).map(p=>p.name);
+    const fill=h.persons.filter(p=>p.isMgrFill).map(p=>p.name);
+    rows1.push([`${m}/${d}`,wd,h.slot,h.timeStr||'',h.hours,normal.join('、'),fill.length?'是':'否',fill.join('、')]);});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows1),'派遣紀錄');
+  const rows2=[['姓名','職稱','類別','累積時數','支援次數']];
+  staff.filter(p=>!p.mgr).forEach(p=>rows2.push([p.name,p.role,p.shift?'排班制':'非排班制',p.hours,p.count]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows2),'累積統計');XLSX.writeFile(wb,'營運指導課_支援紀錄.xlsx');}
+
+function renderHistory(){
+  document.getElementById('h-total').textContent=history.length;
+  document.getElementById('h-pcount').textContent=history.reduce((a,h)=>a+h.persons.length,0);
+  const totalH=history.reduce((a,h)=>a+h.hours*h.persons.filter(p=>!p.mgr).length,0);
+  document.getElementById('h-hours').textContent=totalH+'h';
+  renderBarChart();
+  const el=document.getElementById('hlist');
+  if(!history.length){el.innerHTML='<div class="empty">尚無紀錄</div>';return;}
+  el.innerHTML=history.map((h,idx)=>{const[,m,d]=h.date.split('-').map(Number),wd=WD[new Date(...h.date.split('-').map(Number).map((v,i)=>i===1?v-1:v)).getDay()];
+    return`<div style="padding:10px 0;border-bottom:1px solid #f5f5f5">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
+        <span style="font-size:12px;color:#888">${m}/${d}（${wd}）</span>
+        <span style="font-size:12px;padding:2px 8px;border-radius:99px;${h.slot==='上午'?'background:#EAF0ED;color:#4A6358':'background:#E8EFF3;color:#3D6070'}">${h.slot}${h.timeStr?' '+h.timeStr:''}</span>
+        <span style="font-size:12px;color:#888">${h.hours}h</span>
+        <button class="btn btn-d" style="font-size:11px;padding:2px 8px;margin-left:auto" onclick="deleteHistory(${idx})">刪除此場</button>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${h.persons.map(p=>`<span class="person-tag" style="${p.isMgrFill?'background:var(--amber-bg);color:var(--amber)':'background:var(--surface2);color:var(--text);border:1px solid var(--border)'}" onclick="togglePersonDetail('${p.name}')">${p.name}${p.isMgrFill?'（補位）':''}</span>`).join('')}</div>
+    </div>`;}).join('');}
+
+loadData();
+if(!staff.length) renderStaff();
+renderCal();
+</script>
+</body>
+</html>
